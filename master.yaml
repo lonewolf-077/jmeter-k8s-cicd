@@ -14,7 +14,7 @@ spec:
         image: nihal2897577/my-jmeter:latest # Isko bhi apne DockerHub username se replace karna hoga
         command: ["/bin/sh", "-c"]
         args:
-          - jmeter -n -t /script/test-script.jmx -R jmeter-workers -Gthreads=500 -l /results/results.jtl;
+          - jmeter -n -t /script/test-script.jmx -R jmeter-workers -Gthreads=20 -l /results/results.jtl;
             sleep 300; # Test khatam hone ke baad container 5 minute zinda rahega taaki Jenkins results download kar sake
         volumeMounts:
         - name: script-volume
