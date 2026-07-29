@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: jmeter-workers
+spec:
+  clusterIP: None # Headless service taaki master direct workers ko dhoond sake
+  selector:
+    app: jmeter-worker
+  ports:
+    - port: 1099
+      targetPort: 1099
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jmeter-worker
+spec:
+  replicas: 3 # Aap yahan number change karke workers ki sankhya badha sakte hain
+  selector:
+    matchLabels:
+      app: jmeter-worker
+  template:
+    metadata:
+      labels:
+        app: jmeter-worker
+    spec:
+      containers:
+      - name: jmeter
+        image: nihal2897577/my-jmeter:latest # Isko baad mein apne DockerHub username se replace karna hoga
+        command: ["jmeter-server", "-Dserver.rmi.localport=50000", "-Dserver_port=1099"]
