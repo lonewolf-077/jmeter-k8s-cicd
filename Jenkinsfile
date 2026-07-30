@@ -52,19 +52,6 @@ pipeline {
                 '''
             }
         }
-        stage('4. Download Results') {
-            steps {
-                // Master pod se results.jtl file nikal kar Jenkins mein lana
-                sh '''
-                    # Master pod ka naam nikalein chahe woh running ho ya completed phase mein
-                    MASTER_POD=$(kubectl get pods -l app=jmeter-master -o jsonpath={.items[0].metadata.name})
-                    
-                    # Agar pod completed hai, toh logs ya cp ke liye thoda dhyan dena padta hai, 
-                    # ya aap job complete hone ki wait command ke baad direct copy chala sakte hain:
-                    kubectl cp ${MASTER_POD}:/results/results.jtl ./results.jtl || true
-                '''
-            }
-        }
     }
     post {
         always {
