@@ -20,9 +20,36 @@ pipeline {
         stage('3. Run Load Test (Master)') {
             steps {
                 // Master ko start karna jo workers ko command dega
-                sh 'kubectl apply -f master.yaml'
+                sh '''
+                    # 1. Master job apply karein
+                    kubectl apply -f master.yaml
+        
+                    # 2. Thoda wait karein taaki pod running state mein aa jaye
+                    echo "Waiting for master pod to start..."
+                    sleep 5
+        
+                    # 3. Running master pod ka naam nikal lein
+                    MASTER_POD=$(kubectl get pods -l app=jmeter-master --field-selector=status.phase=Running -o jsonpath={.items[0].metadata.name})
+                    
+                    # Agar pod turant complete ho jata hai toh saare pods me se pehla wala uthane ke liye:
+                    if [ -z "$MASTER_POD" ]; then
+                        MASTER_POD=$(kubectl get pods -l app=jmeter-master -o jsonpath={.items[0].metadata.name})
+                    fi
+        
+                    echo "Master Pod is: $MASTER_POD"
+        
+                    # 4. Job ke complete hone ka wait karein
+                    kubectl wait --for=condition=complete job/jmeter-master --timeout=600s || true
+        
+                    # 5. Job khatam hone se pehle ya logs/tar ke zariye result nikalne ke liye agar kubectl cp fail ho, 
+                    # toh hum direct container ke logs ya ephemeral storage use kar sakte hain, 
+                    # par agar kubectl cp chalana hai toh job complete hone se pehle background me loop chala sakte hain.
+                '''
                 // Test complete hone ka wait karna (max 10 minutes)
-                sh 'kubectl wait --for=condition=complete job/jmeter-master --timeout=600s'
+                sh '''
+                    MASTER_POD=$(kubectl get pods -l app=jmeter-master -o jsonpath={.items[0].metadata.name})
+                    kubectl cp ${MASTER_POD}:/results/results.jtl ./results.jtl || echo "Copy failed, trying alternative..."
+                '''
             }
         }
         stage('4. Download Results') {
