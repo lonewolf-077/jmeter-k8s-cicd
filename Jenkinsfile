@@ -43,7 +43,7 @@ pipeline {
                         fi
                         
                         # Agar pod pehle hi mar gaya toh loop tod dein
-                        if [ "$PHASE" == "Succeeded" ] || [ "$PHASE" == "Failed" ]; then
+                        if [ "$PHASE" = "Succeeded" ] || [ "$PHASE" = "Failed" ]; then
                             echo "Pod test complete kar chuka hai."
                             break
                         fi
