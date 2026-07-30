@@ -47,6 +47,18 @@ pipeline {
                             echo "Pod test complete kar chuka hai."
                             break
                         fi
+
+                        # Check karein agar test successfully khatam ho gaya
+                        if kubectl logs $MASTER_POD 2>/dev/null | grep -q "end of run"; then
+                            echo "✅ Test finished! Final copy in progress..."
+                            
+                            # JTL file copy karna
+                            kubectl cp $MASTER_POD:/results/results.jtl ./results.jtl 2>/dev/null || true
+                            
+                            # HTML Report ka poora folder copy karna
+                            kubectl cp $MASTER_POD:/results/html-report ./html-report 2>/dev/null || true
+                            break
+                        fi
                         
                         sleep 5
                     done
@@ -59,6 +71,17 @@ pipeline {
             sh 'kubectl delete -f master.yaml || true'
             sh 'kubectl delete -f worker.yaml || true'
             perfReport 'results.jtl' 
+
+            publishHTML(target: [
+                allowMissing: false,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: 'html-report',
+                reportFiles: 'index.html',
+                reportName: 'JMeter HTML Report'
+            ])
         }
+
+        
     }
 }
