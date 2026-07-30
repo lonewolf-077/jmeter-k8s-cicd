@@ -27,12 +27,26 @@ pipeline {
                     MASTER_POD=$(kubectl get pods -l app=jmeter-master -o jsonpath={.items[0].metadata.name})
                     echo "Master Pod is: $MASTER_POD"
          
-                    # 4. Job ke complete hone ka wait karein (test poora chalne dein)
-                    kubectl wait --for=condition=complete job/jmeter-master --timeout=600s
+                    # 4. Smart Loop: Jab tak pod Running state mein hai, tab tak check karein ki results file bani ya nahi
+                    echo "Waiting for test results..."
+                    while kubectl get pod $MASTER_POD 2>/dev/null | grep -q "Running"; do
+                        # Check karein ki file exist karti hai aur empty nahi hai
+                        if kubectl exec $MASTER_POD -- test -s /results/results.jtl 2>/dev/null; then
+                            echo "Results file generated, pulling data..."
+                            kubectl exec $MASTER_POD -- cat /results/results.jtl > ./results.jtl
+                            break
+                        fi
+                        sleep 2
+                    done
          
-                    # 5. Test khatam hone ke foran baad, jab tak pod 'Completed' state mein hai (aur abhi delete nahi hua), 
-                    # tab tak hum logs ya direct cat command se result file ka data Jenkins workspace mein nikal sakte hain!
-                    kubectl exec $MASTER_POD -- cat /results/results.jtl > ./results.jtl || true
+                    # 5. Agar loop ke dauran kisi wajah se file na aayi ho, toh logs se try karein
+                    if [ ! -s ./results.jtl ]; then
+                        echo "Trying fallback via logs..."
+                        kubectl logs $MASTER_POD > ./results.jtl || true
+                    fi
+         
+                    # 6. Job ke complete hone ka aakhri wait
+                    kubectl wait --for=condition=complete job/jmeter-master --timeout=600s || true
                 '''
             }
         }
