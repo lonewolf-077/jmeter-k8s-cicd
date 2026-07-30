@@ -20,33 +20,30 @@ pipeline {
                     kubectl apply -f master.yaml
          
                     # 2. Pod ke active hone ka wait karein
-                    echo "Waiting for master pod to start..."
                     sleep 5
-         
-                    # 3. Running pod ka naam nikal lein
                     MASTER_POD=$(kubectl get pods -l app=jmeter-master -o jsonpath={.items[0].metadata.name})
                     echo "Master Pod is: $MASTER_POD"
          
-                    # 4. Smart Loop: Jab tak pod Running state mein hai, tab tak check karein ki results file bani ya nahi
-                    echo "Waiting for test results..."
-                    while kubectl get pod $MASTER_POD 2>/dev/null | grep -q "Running"; do
-                        # Check karein ki file exist karti hai aur empty nahi hai
+                    # 3. Test khatam hone ka wait karein. (Jmeter test khatam karega, file banayega, tabhi sleep 60 shuru hoga)
+                    echo "Waiting for Jmeter load test to finish..."
+                    
+                    # 4. Hum pod ke zinda rehte (sleep 60 ke dauran) file copy kar lenge
+                    while kubectl get pod $MASTER_POD | grep -q "Running"; do
+                        # Check agar JMeter ne file properly likh di hai
                         if kubectl exec $MASTER_POD -- test -s /results/results.jtl 2>/dev/null; then
-                            echo "Results file generated, pulling data..."
-                            kubectl exec $MASTER_POD -- cat /results/results.jtl > ./results.jtl
+                            echo "✅ Results file found! Copying..."
+                            kubectl cp $MASTER_POD:/results/results.jtl ./results.jtl
                             break
                         fi
-                        sleep 2
+                        sleep 5
                     done
          
-                    # 5. Agar loop ke dauran kisi wajah se file na aayi ho, toh logs se try karein
+                    # Agar abhi bhi koi issue aata hai, toh galti JMeter logs mein dikhegi
                     if [ ! -s ./results.jtl ]; then
-                        echo "Trying fallback via logs..."
-                        kubectl logs $MASTER_POD > ./results.jtl || true
+                        echo "❌ JMeter failed to create file! Printing logs to see what happened:"
+                        kubectl logs $MASTER_POD
+                        exit 1
                     fi
-         
-                    # 6. Job ke complete hone ka aakhri wait
-                    kubectl wait --for=condition=complete job/jmeter-master --timeout=600s || true
                 '''
             }
         }
