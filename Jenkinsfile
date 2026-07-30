@@ -23,17 +23,21 @@ pipeline {
                     echo "Waiting for master pod to start..."
                     sleep 5
          
-                    # 3. Pod ka naam nikal lein
+                    # 3. Running pod ka naam nikal lein
                     MASTER_POD=$(kubectl get pods -l app=jmeter-master -o jsonpath={.items[0].metadata.name})
                     echo "Master Pod is: $MASTER_POD"
          
-                    # 4. Job ke complete hone ka wait karein
-                    kubectl wait --for=condition=complete job/jmeter-master --timeout=600s
+                    # 4. Background mein loop chalayein jo jese hi results.jtl file banaye, use copy kar le (jab tak pod alive hai)
+                    while kubectl get pod $MASTER_POD 2>&1 | grep -q "Running"; do
+                        kubectl cp ${MASTER_POD}:/results/results.jtl ./results.jtl 2>/dev/null || true
+                        sleep 2
+                    done
          
-                    # 5. Pod complete hone ke BAAD kubectl cp kaam nahi karta, 
-                    # isliye hum pod ke logs se result capture karenge ya fir master container 
-                    # ko bolenge ki woh result print kare.
-                    kubectl logs $MASTER_POD > ./results.jtl
+                    # 5. Aakhri baar job ke complete hone ka wait karein taaki pipeline sync rahe
+                    kubectl wait --for=condition=complete job/jmeter-master --timeout=600s || true
+                    
+                    # 6. Ek aakhri baar copy try karein taaki koi data miss na ho
+                    kubectl cp ${MASTER_POD}:/results/results.jtl ./results.jtl 2>/dev/null || true
                 '''
             }
         }
