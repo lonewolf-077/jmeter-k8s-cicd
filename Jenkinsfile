@@ -16,8 +16,9 @@ pipeline {
         stage('3. Run Load Test & Get Results') {
             steps {
                 sh '''
-                    # 1. Sabse pehle purani khali file delete karein taaki parse error na aaye
+                    # 1. Sabse pehle purani khali file aur html folder delete karein
                     rm -f ./results.jtl || true
+                    rm -rf ./html-report || true
          
                     # 2. Master job apply karein
                     kubectl apply -f master.yaml
@@ -74,7 +75,5 @@ pipeline {
                 reportName: 'JMeter HTML Report'
             ])
         }
-
-        
     }
 }
