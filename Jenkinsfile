@@ -35,19 +35,12 @@ pipeline {
                         # Har 5 second mein data copy karein (taki pod marne ka darr na rahe)
                         kubectl cp $MASTER_POD:/results/results.jtl ./results.jtl 2>/dev/null || true
                         
-                        # Check karein agar test successfully khatam ho gaya
-                        if kubectl logs $MASTER_POD 2>/dev/null | grep -q "end of run"; then
-                            echo "✅ Test finished! Final copy in progress..."
-                            kubectl cp $MASTER_POD:/results/results.jtl ./results.jtl 2>/dev/null || true
-                            break
-                        fi
-                        
                         # Agar pod pehle hi mar gaya toh loop tod dein
                         if [ "$PHASE" = "Succeeded" ] || [ "$PHASE" = "Failed" ]; then
                             echo "Pod test complete kar chuka hai."
                             break
                         fi
-
+                        
                         # Check karein agar test successfully khatam ho gaya
                         if kubectl logs $MASTER_POD 2>/dev/null | grep -q "end of run"; then
                             echo "✅ Test finished! Final copy in progress..."
