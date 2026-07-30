@@ -28,3 +28,6 @@ spec:
       - name: jmeter
         image: nihal2897577/my-jmeter:latest # Isko baad mein apne DockerHub username se replace karna hoga
         command: ["jmeter-server", "-Dserver.rmi.localport=50000", "-Dserver_port=1099"]
+        env:
+        - name: JVM_ARGS
+          value: "-Dserver.rmi.ssl.disable=true"
